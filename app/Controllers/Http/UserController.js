@@ -91,7 +91,7 @@ class UserController {
   async changePassword({ request, respones, auth }) {
     const user = auth.current.user
     const verifyPassword = await Hash.verify(
-      request.input('password')
+      request.input('password'),
       user.password
     )
     if(!verifyPassword) {
@@ -107,6 +107,36 @@ class UserController {
       status: 'success',
       message: 'Password updated!'
     })
+  }
+
+  async showProfile ({ request, params, response }) {
+    try {
+      const user = await User.query()
+          .where('username', params.username)
+          .with('tweets', builder => {
+            builder.with('user')
+            builder.with('favorites')
+            builder.with('replies')
+          })
+          .with('following')
+          .with('followers')
+          .with('favorites')
+          .with('favorites.tweet', builder => {
+            builder.with('user')
+            builder.with('favorites')
+            builder.with('replies')
+          })
+          .firstOrFail()
+      return response.json({
+          status: 'success',
+          data: user
+      })
+    } catch (error) {
+        return response.status(404).json({
+            status: 'error',
+            message: 'User not found'
+        })
+    }
   }
 }
 
